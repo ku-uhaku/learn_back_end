@@ -8,6 +8,7 @@ func RunSeeders() {
 
 	// Run individual seeders (call directly)
 	SeedUsers()
+	SeedSchools()
 
 	log.Println("All seeders completed successfully!")
 }

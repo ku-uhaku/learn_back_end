@@ -3,9 +3,10 @@ package routes
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"backend/controllers"
 	"backend/middleware"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // UserRoutes returns a router for user-related endpoints (protected)
@@ -19,7 +20,8 @@ func UserRoutes() *chi.Mux {
 	r.Get("/", controllers.GetUsers)       // GET /users
 	r.Get("/{id}", controllers.GetUser)    // GET /users/:id
 	r.Post("/", controllers.CreateUser)    // POST /users
-
+	r.Put("/{id}", controllers.UpdateUser) // PUT /schools/:id
+	r.Delete("/{id}", controllers.DeleteUser)
 	// Example test route
 	r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("You have access to a protected route!"))

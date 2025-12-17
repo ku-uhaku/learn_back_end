@@ -10,7 +10,10 @@ import (
 // ResetAndMigrate drops all tables and recreates them
 func RunMigrations() {
 	// Drop tables
-	err := config.DB.Migrator().DropTable(&models.User{})
+	err := config.DB.Migrator().DropTable(
+		&models.User{},
+		&models.School{},
+	)
 	if err != nil {
 		log.Fatal("Failed to drop tables:", err)
 	}
@@ -18,7 +21,10 @@ func RunMigrations() {
 	log.Println("All tables dropped successfully!")
 
 	// Recreate tables
-	err = config.DB.AutoMigrate(&models.User{})
+	err = config.DB.AutoMigrate(
+		&models.User{},
+		&models.School{},
+	)
 	if err != nil {
 		log.Fatal("Migration failed:", err)
 	}

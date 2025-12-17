@@ -1,9 +1,10 @@
 package routes
 
 import (
-	"github.com/go-chi/chi/v5"
 	"backend/controllers"
 	"backend/middleware"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func SetupRouter() *chi.Mux {
@@ -17,6 +18,7 @@ func SetupRouter() *chi.Mux {
 
 	// Protected routes
 	r.Mount("/api/v1/users", UserRoutes())
+	// r.Mount("/api/v1/schools", SchoolRoutes())
 
 	return r
 }
