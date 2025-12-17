@@ -1,40 +1,38 @@
 package services
 
 import (
-	"backend/config"
-	"backend/models"
-	"log"
+	"errors"
+	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"backend/config"
+	"backend/models"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("YOUR_SECRET_KEY") // Replace with env variable
+var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 
-// LoginService checks user credentials and returns JWT token
-func LoginService(email, password string) (string, error) {
+// LoginService validates user credentials and returns user + JWT token
+func LoginService(email, password string) (models.User, string, error) {
 	var user models.User
 	if err := config.DB.Where("email = ?", email).First(&user).Error; err != nil {
-		return "", err
+		return models.User{}, "", errors.New("user not found")
 	}
 
-	// Compare password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", err
+		return models.User{}, "", errors.New("invalid password")
 	}
 
-	// Create JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24h expiration
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	})
 
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
-		log.Println("Failed to sign token:", err)
-		return "", err
+		return models.User{}, "", err
 	}
 
-	return tokenString, nil
+	return user, tokenString, nil
 }

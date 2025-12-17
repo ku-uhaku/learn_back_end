@@ -9,13 +9,19 @@ import (
 func SetupRouter() *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
 	// Auth routes
 	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Post("/login", controllers.LoginHandler)
 	})
 
-	r.Mount("/api/v1/users", UserRoutes())
+	// Protected routes
+	r.Route("/api/v1/users", func(r chi.Router) {
+		r.Use(middleware.JWTAuth)
+
+		r.Get("/", controllers.GetUsers)       // GET all users
+		r.Get("/{id}", controllers.GetUser)    // GET user by id
+		r.Post("/", controllers.CreateUser)    // create user
+	})
 
 	return r
 }

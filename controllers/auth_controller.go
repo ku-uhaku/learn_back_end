@@ -3,6 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+
+	"backend/models"
 	"backend/services"
 )
 
@@ -12,10 +14,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	User  models.User `json:"user"`
+	Token string      `json:"token"`
 }
 
-// LoginHandler handles POST /api/v1/auth/login
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -24,14 +26,18 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := services.LoginService(req.Email, req.Password)
+	user, token, err := services.LoginService(req.Email, req.Password)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Invalid credentials"))
 		return
 	}
 
-	res := LoginResponse{Token: token}
+	res := LoginResponse{
+		User:  user,
+		Token: token,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(res)
 }
