@@ -6,21 +6,22 @@ import (
 	"strconv"
 
 	"backend/config"
+	"backend/helpers"
 	"backend/models"
 
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // GetUsers handles GET /api/v1/users
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	var users []models.User
 	if err := config.DB.Find(&users).Error; err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Failed to fetch users"))
+		helpers.JSONError(w, "Failed to fetch users", "error_sound", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(users)
+	helpers.JSONSuccess(w, users, "Users fetched successfully", "success_sound")
 }
 
 // GetUser handles GET /api/v1/users/{id}
@@ -28,38 +29,41 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid user ID"))
+		helpers.JSONError(w, "Invalid user ID", "error_sound", http.StatusBadRequest)
 		return
 	}
 
 	var user models.User
 	if err := config.DB.First(&user, id).Error; err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("User not found"))
+		helpers.JSONError(w, "User not found", "error_sound", http.StatusNotFound)
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	helpers.JSONSuccess(w, user, "User fetched successfully", "success_sound")
 }
 
 // CreateUser handles POST /api/v1/users
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	var input models.User
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid request payload"))
+	var req models.User
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helpers.JSONError(w, "Invalid request body", "error_sound", http.StatusBadRequest)
 		return
 	}
 
-	// Save to database
-	if err := config.DB.Create(&input).Error; err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Failed to create user"))
+	// Hash password
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.PasswordHash), 12)
+	if err != nil {
+		helpers.JSONError(w, "Failed to hash password", "error_sound", http.StatusInternalServerError)
+		return
+	}
+	req.PasswordHash = string(hash)
+
+	if err := config.DB.Create(&req).Error; err != nil {
+		helpers.JSONError(w, "Failed to create user: "+err.Error(), "error_sound", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(input)
+	helpers.JSONSuccess(w, req, "User created successfully", "success_sound")
 }
 
 // UpdateUser handles PUT /api/v1/users/{id}
@@ -67,27 +71,38 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid user ID"))
+		helpers.JSONError(w, "Invalid user ID", "error_sound", http.StatusBadRequest)
 		return
 	}
 
 	var input models.User
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid request payload"))
+		helpers.JSONError(w, "Invalid request payload", "error_sound", http.StatusBadRequest)
 		return
 	}
 
 	var user models.User
 	if err := config.DB.First(&user, id).Error; err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("User not found"))
+		helpers.JSONError(w, "User not found", "error_sound", http.StatusNotFound)
 		return
 	}
 
-	config.DB.Model(&user).Updates(input)
-	json.NewEncoder(w).Encode(user)
+	// Optional: hash password if updated
+	if input.PasswordHash != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(input.PasswordHash), 12)
+		if err != nil {
+			helpers.JSONError(w, "Failed to hash password", "error_sound", http.StatusInternalServerError)
+			return
+		}
+		input.PasswordHash = string(hash)
+	}
+
+	if err := config.DB.Model(&user).Updates(input).Error; err != nil {
+		helpers.JSONError(w, "Failed to update user: "+err.Error(), "error_sound", http.StatusInternalServerError)
+		return
+	}
+
+	helpers.JSONSuccess(w, user, "User updated successfully", "success_sound")
 }
 
 // DeleteUser handles DELETE /api/v1/users/{id}
@@ -95,16 +110,14 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid user ID"))
+		helpers.JSONError(w, "Invalid user ID", "error_sound", http.StatusBadRequest)
 		return
 	}
 
 	if err := config.DB.Delete(&models.User{}, id).Error; err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Failed to delete user"))
+		helpers.JSONError(w, "Failed to delete user", "error_sound", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	helpers.JSONSuccess(w, nil, "User deleted successfully", "success_sound")
 }

@@ -8,6 +8,7 @@ import (
 
 func SetupRouter() *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(middleware.RecoverMiddleware)
 
 	// Auth routes
 	r.Route("/api/v1/auth", func(r chi.Router) {
@@ -15,13 +16,7 @@ func SetupRouter() *chi.Mux {
 	})
 
 	// Protected routes
-	r.Route("/api/v1/users", func(r chi.Router) {
-		r.Use(middleware.JWTAuth)
-
-		r.Get("/", controllers.GetUsers)       // GET all users
-		r.Get("/{id}", controllers.GetUser)    // GET user by id
-		r.Post("/", controllers.CreateUser)    // create user
-	})
+	r.Mount("/api/v1/users", UserRoutes())
 
 	return r
 }

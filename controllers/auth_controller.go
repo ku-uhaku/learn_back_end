@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"backend/helpers"
 	"backend/models"
 	"backend/services"
 )
@@ -21,15 +22,13 @@ type LoginResponse struct {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid request"))
+		helpers.JSONError(w, "Invalid request body", "error_sound", http.StatusBadRequest)
 		return
 	}
 
 	user, token, err := services.LoginService(req.Email, req.Password)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Invalid credentials"))
+		helpers.JSONError(w, "Invalid credentials", "error_sound", http.StatusUnauthorized)
 		return
 	}
 
@@ -38,6 +37,5 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Token: token,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(res)
+	helpers.JSONSuccess(w, res, "Login successful", "success_sound")
 }

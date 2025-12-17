@@ -6,22 +6,24 @@ import (
 	"os"
 	"strings"
 
+	"backend/helpers"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
+var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY")) // ensure your .env has JWT_SECRET_KEY
 
+// JWTAuth middleware checks for a valid token in Authorization header
 func JWTAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+			helpers.JSONError(w, "Missing Authorization header", "error_sound", http.StatusUnauthorized)
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			http.Error(w, "Invalid Authorization header", http.StatusUnauthorized)
+			helpers.JSONError(w, "Invalid Authorization header", "error_sound", http.StatusUnauthorized)
 			return
 		}
 
@@ -35,10 +37,15 @@ func JWTAuth(next http.Handler) http.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			http.Error(w, "Invalid token: "+err.Error(), http.StatusUnauthorized)
+			msg := "Invalid token"
+			if err != nil {
+				msg += ": " + err.Error()
+			}
+			helpers.JSONError(w, msg, "error_sound", http.StatusUnauthorized)
 			return
 		}
 
+		// Token is valid, proceed to next handler
 		next.ServeHTTP(w, r)
 	})
 }
